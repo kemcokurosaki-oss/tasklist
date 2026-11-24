@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>タスクリスト</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='75' font-size='80' text-anchor='middle'>📋</text></svg>">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha384-BWcjm9OdFth9TbhCxZPdm+gAOUMAzQy9nmTs12ioXdCcbVnJaPMn+fMUoQCLt60R" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="style.css?v=20261124a">
+</head>
+<body class="not-logged-in">
+    <div class="header-panel">
+        <div class="header-row">
+            <span id="app_title" class="app-title">📋 タスクリスト</span>
+            <input type="text" id="filter_project" class="header-input" placeholder="工番で絞り込み" style="width:140px">
+            <input type="text" id="filter_keyword" class="header-input" placeholder="機械・ユニット・項目・担当者で検索" style="width:220px">
+            <select id="filter_status" class="header-select"></select>
+            <label class="checkbox-label"><input type="checkbox" id="filter_open_only" checked> 未完了のみ</label>
+            <label class="checkbox-label"><input type="checkbox" id="filter_post_shipment_only"> 出荷後のみ</label>
+            <div class="action-controls">
+                <button type="button" class="btn btn-primary" id="new_issue_btn">＋ タスクを登録</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div id="issue_count" class="issue-count"></div>
+        <table class="issue-table">
+            <thead>
+                <tr>
+                    <th style="width:90px">工番</th>
+                    <th style="width:140px">機械・ユニット</th>
+                    <th style="width:90px">分類</th>
+                    <th>項目</th>
+                    <th style="width:110px">担当者</th>
+                    <th style="width:130px">ステータス</th>
+                    <th style="width:100px">完了予定日</th>
+                    <th style="width:60px">履歴</th>
+                </tr>
+            </thead>
+            <tbody id="issue_tbody"></tbody>
+        </table>
+        <div id="empty_state" class="empty-state" style="display:none">該当するタスクはありません</div>
+    </div>
+
+    <!-- 詳細・編集ダイアログ -->
+    <div id="detail_overlay" class="overlay">
+        <div class="dialog">
+            <div class="dialog-header">
+                <span id="dialog_title">タスクの登録</span>
+                <button type="button" class="dialog-close" id="dialog_close_btn">×</button>
+            </div>
+            <div class="dialog-body">
+                <div class="form-grid">
+                    <label>工番 <span class="req">*</span>
+                        <input type="text" id="f_project_number">
+                    </label>
+                    <label>分類
+                        <input type="text" id="f_category" list="category_options">
+                        <datalist id="category_options">
+                            <option value="出荷前"></option>
+                            <option value="現地工事"></option>
+                            <option value="出荷後"></option>
+                        </datalist>
+                    </label>
+                    <label>機械
+                        <input type="text" id="f_machine" list="machine_options">
+                        <datalist id="machine_options"></datalist>
+                    </label>
+                    <label>ユニット
+                        <input type="text" id="f_unit" list="unit_options">
+                        <datalist id="unit_options"></datalist>
+                    </label>
+                    <label>発見日
+                        <input type="date" id="f_found_date">
+                    </label>
+                    <label>発見者
+                        <input type="text" id="f_finder" list="assignee_options">
+                    </label>
+                    <label>担当者
+                        <input type="text" id="f_owner" list="assignee_options">
+                    </label>
+                    <label>設計担当
+                        <input type="text" id="f_design_owner" list="assignee_options">
+                    </label>
+                    <label>施工担当
+                        <input type="text" id="f_construction_owner" list="assignee_options">
+                    </label>
+                    <datalist id="assignee_options"></datalist>
+                    <label>ステータス
+                        <select id="f_status"></select>
+                    </label>
+                    <label>現工程完了日
+                        <input type="date" id="f_current_process_due">
+                    </label>
+                    <label>完了予定日
+                        <input type="date" id="f_due_date">
+                    </label>
+                    <label>完了日
+                        <input type="date" id="f_completed_date">
+                    </label>
+                </div>
+                <label class="full-row">タスク内容
+                    <textarea id="f_item" rows="2"></textarea>
+                </label>
+                <label class="full-row">詳細・対応策
+                    <textarea id="f_detail" rows="3"></textarea>
+                </label>
+
+                <div id="notes_section" style="display:none">
+                    <h3>状況（履歴）</h3>
+                    <div id="notes_list" class="notes-list"></div>
+                    <div class="note-add-row">
+                        <textarea id="f_new_note" rows="2" placeholder="状況を追記（日付は自動で入ります）"></textarea>
+                        <button type="button" class="btn" id="add_note_btn">追記</button>
+                    </div>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" class="btn btn-danger" id="archive_btn" style="display:none">削除（一覧から外す）</button>
+                <div class="dialog-footer-right">
+                    <button type="button" class="btn" id="cancel_btn">キャンセル</button>
+                    <button type="button" class="btn btn-primary" id="save_btn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="m365-login.js?v=20261124a"></script>
+    <script src="auth.js?v=20261124a"></script>
+    <script src="app.js?v=20261124a"></script>
+</body>
+</html>

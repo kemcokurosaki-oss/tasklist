@@ -1,0 +1,4 @@
+fastapi==0.162.5
+starlette==1.10.0
+uvicorn==0.32.0
+pyjwt[crypto]==2.15.1

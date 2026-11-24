@@ -1,0 +1,42 @@
+{
+  "app_id": "app-tasklist",
+  "category": "app",
+  "target": "prod",
+  "source_dir": ".",
+  "auth": "m365",
+  "cloudrun": {
+    "memory": "512Mi",
+    "cpu": "1",
+    "concurrency": 40,
+    "max_instances": 2,
+    "timeout": 120
+  },
+  "env": {
+    "SUPABASE_URL": "https://dgekjzkrybrswsxlcbvh.supabase.co",
+    "APP_TITLE": "タスクリスト"
+  },
+  "secrets": {},
+  "probe": {
+    "redirect": [
+      "/"
+    ],
+    "unauthorized": [
+      "/api/me"
+    ]
+  },
+  "preview": {
+    "command": [
+      "py",
+      "-3",
+      "main.py"
+    ],
+    "cwd": ".",
+    "port": 8080,
+    "path": "/",
+    "env": {
+      "APP_ENV": "local",
+      "DEV_LOGIN_EMAIL": "e-kurosaki@kusakabe.com",
+      "APP_TITLE": "タスクリスト"
+    }
+  }
+}
