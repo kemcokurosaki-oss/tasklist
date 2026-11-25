@@ -6,44 +6,64 @@
     <title>タスクリスト</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50' y='75' font-size='80' text-anchor='middle'>📋</text></svg>">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha384-BWcjm9OdFth9TbhCxZPdm+gAOUMAzQy9nmTs12ioXdCcbVnJaPMn+fMUoQCLt60R" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="style.css?v=20261124a">
+    <link rel="stylesheet" href="style.css?v=20261125c">
 </head>
 <body class="not-logged-in">
     <div class="header-panel">
         <div class="header-row">
             <span id="app_title" class="app-title">📋 タスクリスト</span>
-            <input type="text" id="filter_project" class="header-input" placeholder="工番で絞り込み" style="width:140px">
-            <input type="text" id="filter_keyword" class="header-input" placeholder="機械・ユニット・項目・担当者で検索" style="width:220px">
-            <select id="filter_status" class="header-select"></select>
-            <label class="checkbox-label"><input type="checkbox" id="filter_open_only" checked> 未完了のみ</label>
-            <label class="checkbox-label"><input type="checkbox" id="filter_post_shipment_only"> 出荷後のみ</label>
-            <div class="action-controls">
-                <button type="button" class="btn btn-primary" id="new_issue_btn">＋ タスクを登録</button>
-            </div>
         </div>
     </div>
 
-    <div class="main-container">
-        <div id="issue_count" class="issue-count"></div>
-        <table class="issue-table">
-            <thead>
-                <tr>
-                    <th style="width:90px">工番</th>
-                    <th style="width:140px">機械・ユニット</th>
-                    <th style="width:90px">分類</th>
-                    <th>項目</th>
-                    <th style="width:110px">担当者</th>
-                    <th style="width:130px">ステータス</th>
-                    <th style="width:100px">完了予定日</th>
-                    <th style="width:60px">履歴</th>
-                </tr>
-            </thead>
-            <tbody id="issue_tbody"></tbody>
-        </table>
-        <div id="empty_state" class="empty-state" style="display:none">該当するタスクはありません</div>
+    <!-- ===== ダッシュボード（工番の一覧） ===== -->
+    <div id="dashboard_view" class="main-container">
+        <div class="toolbar">
+            <div class="seg" id="dash_seg">
+                <button type="button" class="seg-btn active" data-mode="open">進行中の工事 <span class="seg-count" id="dash_count_open"></span></button>
+                <button type="button" class="seg-btn" data-mode="closed">過去の工事 <span class="seg-count" id="dash_count_closed"></span></button>
+            </div>
+            <input type="text" id="dash_search" class="header-input" placeholder="工番・客先で検索" style="width:200px">
+            <div class="action-controls">
+                <button type="button" class="btn btn-primary" id="new_project_btn">＋ 工事を追加</button>
+            </div>
+        </div>
+        <div id="project_grid" class="project-grid"></div>
+        <div id="dash_empty" class="empty-state" style="display:none"></div>
     </div>
 
-    <!-- 詳細・編集ダイアログ -->
+    <!-- ===== 工番ごとのタスク一覧 ===== -->
+    <div id="project_view" class="main-container" style="display:none">
+        <div class="project-head">
+            <button type="button" class="btn btn-back" id="back_btn">← 工事一覧</button>
+            <h1 class="project-title"><span id="pv_number"></span><span id="pv_title" class="project-sub"></span><span id="pv_closed_tag" class="closed-tag" style="display:none">過去の工事</span></h1>
+            <div class="action-controls">
+                <button type="button" class="btn" id="edit_project_btn">工事の設定</button>
+                <button type="button" class="btn btn-primary" id="new_issue_btn">＋ タスクを登録</button>
+            </div>
+        </div>
+
+        <div class="tabs" id="pv_tabs"></div>
+
+        <div class="toolbar">
+            <select id="pv_machine" class="header-select"></select>
+            <input type="text" id="pv_keyword" class="header-input" placeholder="ユニット・項目・担当者で検索" style="width:240px">
+            <span id="issue_count" class="issue-count"></span>
+            <span id="grid_status" class="grid-status"></span>
+        </div>
+
+        <div class="grid-wrap" id="grid_wrap">
+            <table class="grid" id="grid">
+                <colgroup id="grid_cols"></colgroup>
+                <thead id="grid_head"></thead>
+                <tbody id="grid_body"></tbody>
+            </table>
+            <textarea id="grid_editor" class="grid-editor" spellcheck="false" autocomplete="off" aria-label="セルの入力"></textarea>
+            <div id="grid_suggest" class="grid-suggest"></div>
+        </div>
+        <div class="grid-help">セルを選んでそのまま入力（ダブルクリック・F2 で今の値を編集）／ Tab・Enter・矢印で移動 ／ Alt+Enter でセル内改行 ／ Ctrl+C・Ctrl+V で Excel とコピー貼り付け ／ Delete で消去 ／ Ctrl+Z で元に戻す ／ 一番下の「＋」行に入力すると新しいタスク ／ No. をダブルクリックで詳細・状況の履歴</div>
+    </div>
+
+    <!-- ===== タスクの詳細・編集ダイアログ ===== -->
     <div id="detail_overlay" class="overlay">
         <div class="dialog">
             <div class="dialog-header">
@@ -56,12 +76,10 @@
                         <input type="text" id="f_project_number">
                     </label>
                     <label>分類
-                        <input type="text" id="f_category" list="category_options">
-                        <datalist id="category_options">
-                            <option value="出荷前"></option>
-                            <option value="現地工事"></option>
-                            <option value="出荷後"></option>
-                        </datalist>
+                        <select id="f_category"></select>
+                    </label>
+                    <label>ステータス
+                        <select id="f_status"></select>
                     </label>
                     <label>機械
                         <input type="text" id="f_machine" list="machine_options">
@@ -87,9 +105,6 @@
                         <input type="text" id="f_construction_owner" list="assignee_options">
                     </label>
                     <datalist id="assignee_options"></datalist>
-                    <label>ステータス
-                        <select id="f_status"></select>
-                    </label>
                     <label>現工程完了日
                         <input type="date" id="f_current_process_due">
                     </label>
@@ -100,7 +115,7 @@
                         <input type="date" id="f_completed_date">
                     </label>
                 </div>
-                <label class="full-row">タスク内容
+                <label class="full-row">項目（タスク内容）
                     <textarea id="f_item" rows="2"></textarea>
                 </label>
                 <label class="full-row">詳細・対応策
@@ -126,10 +141,42 @@
         </div>
     </div>
 
+    <!-- ===== 工事の追加・設定ダイアログ ===== -->
+    <div id="project_overlay" class="overlay">
+        <div class="dialog dialog-sm">
+            <div class="dialog-header">
+                <span id="project_dialog_title">工事を追加</span>
+                <button type="button" class="dialog-close" id="project_close_btn">×</button>
+            </div>
+            <div class="dialog-body">
+                <label class="full-row">工番 <span class="req">*</span>
+                    <input type="text" id="p_number" placeholder="例：2810">
+                </label>
+                <label class="full-row">客先・件名
+                    <input type="text" id="p_title" placeholder="空欄なら工程表の客先名を表示">
+                </label>
+                <div id="p_close_row" class="close-row" style="display:none">
+                    <div>
+                        <div class="close-row-title" id="p_close_label"></div>
+                        <div class="close-row-help" id="p_close_help"></div>
+                    </div>
+                    <button type="button" class="btn" id="p_close_btn"></button>
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <div class="dialog-footer-right">
+                    <button type="button" class="btn" id="project_cancel_btn">キャンセル</button>
+                    <button type="button" class="btn btn-primary" id="project_save_btn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast" class="toast"></div>
 
     <script src="m365-login.js?v=20261124a"></script>
     <script src="auth.js?v=20261124a"></script>
-    <script src="app.js?v=20261124a"></script>
+    <script src="app.js?v=20261125c"></script>
+    <script src="grid.js?v=20261125c"></script>
 </body>
 </html>

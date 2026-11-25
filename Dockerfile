@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py login.html ./
 
 # タスクリストの画面一式
-COPY index.html style.css app.js m365-login.js auth.js ./static/
+COPY index.html style.css app.js grid.js m365-login.js auth.js ./static/
 
 RUN useradd -m -u 10001 appuser && chown -R appuser:appuser /app
 USER appuser
